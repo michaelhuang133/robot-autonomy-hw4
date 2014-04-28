@@ -97,6 +97,7 @@ class SimpleEnvironment(object):
             self.actions[idx] = []
             grid_coordinate[2] = idx
             start_config = self.discrete_env.GridCoordToConfiguration(grid_coordinate)
+	    #print start_config
 
             # TODO: Here you will construct a set of actionson
             #  to be used during the planning process
@@ -119,7 +120,7 @@ class SimpleEnvironment(object):
                     this_action = Action(ctrl, footprint)
 
                     self.actions[idx].append(this_action)
-
+		    #print self.actions
          
             
 
@@ -132,6 +133,13 @@ class SimpleEnvironment(object):
         #  and return a list of node_ids and controls that represent the neighboring
         #  nodes
         
+	# Very unclear about getting successors, but I think I need to use constructaction function 
+	# to do so, therefore I will write my version here 
+	
+	currentConfiguration = self.discrete_env.NodeIdToConfiguration(nid)
+	
+
+
         return successors
 
     def ComputeDistance(self, start_id, end_id):
@@ -141,6 +149,11 @@ class SimpleEnvironment(object):
         # TODO: Here you will implement a function that 
         # computes the distance between the configurations given
         # by the two node ids
+
+	start_config = numpy.array(self.discrete_env.NodeIdToConfiguration(start_id))
+        end_config = numpy.array(self.discrete_env.NodeIdToConfiguration(end_id))
+        
+        dist = numpy.linalg.norm(start_config - end_config)
 
         return dist
 
@@ -152,6 +165,17 @@ class SimpleEnvironment(object):
         # computes the heuristic cost between the configurations
         # given by the two node ids
         
+	# Heuristic Cost in uncertain for this case with three resolution,
+	# I will update this part later
+
+	start_coord = self.discrete_env.ConfigurationToGridCoord(start_config)
+        goal_coord = self.discrete_env.ConfigurationToGridCoord(goal_config)
+	
+	cost = 0
+	for i in range(len(start_coord)):
+	    cost = cost + abs(goal_coord[i]-start_coord[i])
+	    
+	cost = cost*self.discrete_env.resolution
         
         return cost
 
