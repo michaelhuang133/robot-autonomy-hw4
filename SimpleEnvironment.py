@@ -19,8 +19,9 @@ class SimpleEnvironment(object):
         self.herb = herb
         self.robot = herb.robot
         self.boundary_limits = [[-5., -5., -numpy.pi], [5., 5., numpy.pi]]
-        lower_limits, upper_limits = self.boundary_limits
-        self.discrete_env = DiscreteEnvironment(resolution, lower_limits, upper_limits)
+        self.lower_limits, self.upper_limits = self.boundary_limits
+	print self.lower_limits
+        self.discrete_env = DiscreteEnvironment(resolution, self.lower_limits, self.upper_limits)
 
         self.resolution = resolution
         self.ConstructActions()
@@ -105,12 +106,12 @@ class SimpleEnvironment(object):
 
             # Since an action is composed of only 3 variables (left, right, and duration),
             # It is not unreasonable to do a comprehensive action generation.
-            omega_range = 5; # min/max velocity
-            resolution = 0.5;
+            omega_range = 1; # min/max velocity
+            resolution = 0.1;
             n_pts = int(omega_range * 2 / resolution);
 
             omega = numpy.linspace(-omega_range, omega_range, n_pts)
-            duration = 0.1 # Can make this a range for even more options
+            duration = 1 # Can make this a range for even more options
 
             # Generate all combinations of left and right wheel velocities
             for om_1 in omega:
@@ -120,26 +121,29 @@ class SimpleEnvironment(object):
                     this_action = Action(ctrl, footprint)
 
                     self.actions[idx].append(this_action)
-		    #print self.actions
          
             
 
     def GetSuccessors(self, node_id):
 
-        successors = []
+        successors = {}
 
         # TODO: Here you will implement a function that looks
         #  up the configuration associated with the particular node_id
         #  and return a list of node_ids and controls that represent the neighboring
         #  nodes
         
-	# Very unclear about getting successors, but I think I need to use constructaction function 
-	# to do so, therefore I will write my version here 
 	
-	currentConfiguration = self.discrete_env.NodeIdToConfiguration(nid)
-	
-
-
+	currentConfiguration = self.discrete_env.NodeIdToConfiguration(node_id)
+	currentCoord = self.discrete_env.NodeIdToGridCoord(node_id)
+	#print currentConfiguration
+	#print currentCoord
+	#print currentCoord[2]
+	for action in self.actions[currentCoord[2]]:
+	    
+	    successorNodeid = self.discrete_env.ConfigurationToNodeId(currentConfiguration + action.footprint[len(action.footprint)-1])
+	    successors[successorNodeid] = action
+	#print successors
         return successors
 
     def ComputeDistance(self, start_id, end_id):
@@ -168,14 +172,14 @@ class SimpleEnvironment(object):
 	# Heuristic Cost in uncertain for this case with three resolution,
 	# I will update this part later
 
-	start_coord = self.discrete_env.ConfigurationToGridCoord(start_config)
-        goal_coord = self.discrete_env.ConfigurationToGridCoord(goal_config)
+	start_coord = self.discrete_env.NodeIdToGridCoord(start_id)
+        goal_coord = self.discrete_env.NodeIdToGridCoord(goal_id)
 	
 	cost = 0
 	for i in range(len(start_coord)):
-	    cost = cost + abs(goal_coord[i]-start_coord[i])
+	    cost = cost + abs(goal_coord[i]-start_coord[i])*self.discrete_env.resolution[i]
 	    
-	cost = cost*self.discrete_env.resolution
+	#cost = cost*self.discrete_env.resolution
         
         return cost
 
@@ -185,3 +189,8 @@ class SimpleEnvironment(object):
         for action in self.actions[key]:
             c = action.control
             print "(%.2f %.2f) %.2f s" % (c.ul, c.ur, c.dt)
+
+    def PlotEdge2(self, sconfig, econfig, color, size):
+        pl.plot([sconfig[0], econfig[0]],
+                [sconfig[1], econfig[1]],
+                color, linewidth=size)
